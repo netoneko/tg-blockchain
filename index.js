@@ -77,31 +77,41 @@ const formatMessage = (msg) => {
     return `${name} <@${msg.from.username}> ${date}: ${msg.text}`;
 };
 
-const createBlock = (repo, queue) => {
-    if (_.isEmpty(queue)) return;
+const copyArray = (source, destination) => {
+    while (source.length > 0) {
+        destination.push(source.pop());
+    }
+};
+
+const createBlock = (repo, queue, lock) => {
+    if (_.isEmpty(queue) || lock) return;
 
     console.log(`Creating new block, size: ${queue.length}`);
 
     const values = [];
-    while (queue.length > 0) {
-        values.push(queue.pop());
-    }
+    copyArray(queue, values);
 
     const formatted = _(values).sortBy('date').map(formatMessage).value();
+
+    lock = true;
 
     getHEAD(repo).then(head => {
         formatted.unshift(`${head.sha()}\n`);
         formatted.unshift('0\n');
 
         return commit(repo, formatted.join('\n'), head);
-    }).catch(console.log);
+    }).catch(err => {
+        console.log(err);
+        copyArray(values, queue);
+    }).then(() => lock = false);
 };
 
 const createBot = (token, repo) => {
     const bot = new TelegramBot(token, {polling: true}),
-        queue = [];
+        queue = [],
+        lock = false;
 
-    setInterval(_.partial(createBlock, repo, queue), 10000);
+    setInterval(_.partial(createBlock, repo, queue, lock), 10000);
 
     bot.on('message', (msg) => {
       console.log(msg);
