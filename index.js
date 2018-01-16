@@ -14,7 +14,7 @@ const updateMessage = (message) => {
     return tokens.join(' ');
 };
 
-const proofOfWork = (repo, oid, difficulty, update_ref) => {
+const proofOfWork = (repo, oid, update_ref) => {
     if (_.startsWith(oid.tostrS(), '00')) {
         return oid;
     }
@@ -32,7 +32,7 @@ const proofOfWork = (repo, oid, difficulty, update_ref) => {
     });
 };
 
-const commit = (repo, message) => {
+const commit = (repo, message, parent) => {
     console.log(repo, message)
     const append = (index) => {
         return index.addByPath('blank').then(() => {
@@ -42,11 +42,10 @@ const commit = (repo, message) => {
 
     return repo.refreshIndex().then(append).then(oid => {
             const author = git.Signature.now(DEFAULT_AUTHOR, DEFAULT_EMAIL),
-                committer = author;
+                committer = author,
+                parents = _.isEmpty(parent) ? [] : [parent];
 
-            // Since we're creating an inital commit, it has no parents. Note that unlike
-            // normal we don't get the head either, because there isn't one yet.
-            return repo.createCommit('HEAD', author, committer, message, oid, []);
+            return repo.createCommit('HEAD', author, committer, message, oid, parents);
     }).then(oid => {
         return proofOfWork(repo, oid, 'HEAD');
     });
@@ -68,7 +67,16 @@ const getRepo = (path) => {
     return open();
 };
 
+const getHEAD = (repo) => {
+    return git.Reference.nameToId(repo, 'HEAD').then(head => {
+        return repo.getCommit(head);
+    });
+};
+
 getRepo(REPO_PATH).then(repo => {
-    console.log(repo)
-    return commit(repo, 'Other stuff');
-});
+    return getHEAD(repo).then(head => {
+        return commit(repo, 'Other stuff', head);
+    }).then(() => getHEAD(repo)).then(head => {
+        return commit(repo, 'Some stuff', head);
+    });
+}).catch(console.log);
