@@ -2,6 +2,8 @@ const _ = require('lodash'),
     Promise = require('bluebird'),
     git = require('nodegit'),
     fs = require('fs'),
+    TelegramBot = require('node-telegram-bot-api'),
+    TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN,
     REPO_PATH = process.env.REPO_PATH || './tmp/',
     DEFAULT_AUTHOR = process.env.REPO_PATH || 'noreply',
     DEFAULT_EMAIL = process.env.DEFAULT_EMAIL || 'noreply@example.com';
@@ -58,10 +60,7 @@ const getRepo = (path) => {
         return git.Repository.init(path, 0).then(open).then(repo => {
             fs.writeFileSync(`${path}/blank`, '');
             return commit(repo, '0 Initial commit');
-        }).then(oid => {
-            console.log('$$$', oid)
-            return open();
-        });
+        }).then(open);
     }
 
     return open();
@@ -73,10 +72,23 @@ const getHEAD = (repo) => {
     });
 };
 
-getRepo(REPO_PATH).then(repo => {
-    return getHEAD(repo).then(head => {
-        return commit(repo, 'Other stuff', head);
-    }).then(() => getHEAD(repo)).then(head => {
-        return commit(repo, 'Some stuff', head);
+const formatMessage = (msg) => {
+    const name = _.trim(`${msg.from.first_name || ''} ${msg.from.last_name || ''}`);
+    return `0 ${name} <@${msg.from.username}>: ${msg.text}`;
+};
+
+const createBot = (token, repo) => {
+    const bot = new TelegramBot(token, {polling: true});
+
+    bot.on('message', (msg) => {
+      const chatId = msg.chat.id;
+
+      console.log(msg);
+
+      getHEAD(repo).then(head => {
+          return commit(repo, formatMessage(msg), head);
+      }).catch(console.log);
     });
-}).catch(console.log);
+};
+
+getRepo(REPO_PATH).then(repo => createBot(TELEGRAM_TOKEN, repo)).catch(console.log);
