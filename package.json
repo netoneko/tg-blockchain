@@ -1,0 +1,16 @@
+{
+  "name": "tg-blockchain",
+  "version": "0.0.1",
+  "description": "Stores telegram messages in a block chain with Git",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Kirill Maksimov <netoneko@gmail.com>",
+  "license": "BSD",
+  "dependencies": {
+    "bluebird": "^3.5.1",
+    "lodash": "^4.17.4",
+    "nodegit": "^0.20.3"
+  }
+}
