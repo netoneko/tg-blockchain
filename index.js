@@ -88,9 +88,11 @@ const createBlock = (repo, queue) => {
     }
 
     const formatted = _(values).sortBy('date').map(formatMessage).value();
-    formatted.unshift('0\n');
 
     getHEAD(repo).then(head => {
+        formatted.unshift(`${head.sha()}\n`);
+        formatted.unshift('0\n');
+
         return commit(repo, formatted.join('\n'), head);
     }).catch(console.log);
 };
