@@ -55,7 +55,9 @@ const commit = (repo, message, parent) => {
 const getRepo = (path) => {
     const open = () => git.Repository.open(path);
 
-    if (!fs.exists(path)) {
+    if (!fs.existsSync(path)) {
+        console.log('Initializing new git repo');
+
         return git.Repository.init(path, 0).then(open).then(repo => {
             fs.writeFileSync(`${path}/blank`, '');
             return commit(repo, '0\n\nInitial commit');
